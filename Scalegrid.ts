@@ -1,4 +1,4 @@
-import { Line, Polygon, Svg, G, Polyline, Text } from "@svgdotjs/svg.js";
+import { Line, Polygon, Svg, G, Polyline, Text } from '@svgdotjs/svg.js';
 import {
   pointer,
   listen,
@@ -6,7 +6,7 @@ import {
   ColdSubscription,
   calc,
   action,
-} from "popmotion";
+} from 'popmotion';
 
 interface CustomScale {
   arrDomain: number[];
@@ -53,7 +53,7 @@ type Pixel = number;
 
 function zip<T>(arr1: Array<T>, arr2: Array<T>) {
   if (arr1.length !== arr2.length) {
-    throw { msg: "Sizes mismatch" };
+    throw { msg: 'Sizes mismatch' };
   }
   return arr1.map((element, i) => [element, arr2[i]]);
 }
@@ -82,7 +82,7 @@ class ScaleGrid {
     {
       scaleX = [-5, 5],
       scaleY = [-5, 5],
-      stroke = { width: 2, color: "black" },
+      stroke = { width: 2, color: 'black' },
     }
   ) {
     const scaleRatioX = scaleX[1] / (scaleX[1] - scaleX[0]);
@@ -108,7 +108,7 @@ class ScaleGrid {
     this.size = size;
     this.fnScaleX = fnScaleX;
     this.fnScaleY = fnScaleY;
-    this.polyline = draw.polyline().fill("#00000000");
+    this.polyline = draw.polyline().fill('#00000000');
     this.xData = [];
     this.yData = [];
     this.scaleX = scaleX;
@@ -124,7 +124,7 @@ class ScaleGrid {
     arrY: number[],
     stroke = {
       width: 2,
-      color: "#7777ff",
+      color: '#7777ff',
     }
   ) {
     const args = this._mapData(arrX, arrY);
@@ -158,7 +158,7 @@ class ScaleGrid {
   drawTicks({
     nTicks = 1,
     tickSize = 5,
-    stroke = { width: 2, color: "black" },
+    stroke = { width: 2, color: 'black' },
   }) {
     this.nTicks = nTicks;
     this.arrTicksLines = [];
@@ -232,5 +232,5 @@ export {
   diffScaleCreator,
   xyScaleCreator,
   inverseScale,
-  CustomScale,
 };
+export type { CustomScale };
