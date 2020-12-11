@@ -1,12 +1,5 @@
 import { Line, Polygon, Svg, G, Polyline, Text } from '@svgdotjs/svg.js';
-import {
-  pointer,
-  listen,
-  styler,
-  ColdSubscription,
-  calc,
-  action,
-} from 'popmotion';
+import { pointer, listen, styler, ColdSubscription, calc, action } from 'popmotion';
 
 interface CustomScale {
   arrDomain: number[];
@@ -83,16 +76,15 @@ class ScaleGrid {
       scaleX = [-5, 5],
       scaleY = [-5, 5],
       stroke = { width: 2, color: 'black' },
+      xPadding = 0.05,
+      yPadding = 0.05,
     }
   ) {
     const scaleRatioX = scaleX[1] / (scaleX[1] - scaleX[0]);
     const scaleRatioY = scaleY[1] / (scaleY[1] - scaleY[0]);
     const origin = { x: 1 - scaleRatioX, y: scaleRatioY };
-    const size = [draw.cx() * 2, draw.cy() * 2];
-    const center = [
-      Math.floor(size[0] * origin.x),
-      Math.floor(size[1] * origin.y),
-    ];
+    const size = [draw.cx() * 2 * (1 - xPadding), draw.cy() * 2 * (1 - yPadding)];
+    const center = [Math.floor(size[0] * origin.x), Math.floor(size[1] * origin.y)];
 
     const xAxis = draw.line(0, center[1], size[0], center[1]).stroke(stroke);
     const yAxis = draw.line(center[0], 0, center[0], size[1]).stroke(stroke);
@@ -144,22 +136,14 @@ class ScaleGrid {
     this.polyline.animate().plot(args2);
   }
 
-  ticksLoop(
-    scale: number[],
-    nTicks: number,
-    fnTicks: (nPosition: Pixel) => void
-  ) {
+  ticksLoop(scale: number[], nTicks: number, fnTicks: (nPosition: Pixel) => void) {
     for (let i = scale[0]; i <= scale[1]; i += 1 / nTicks) {
       const nPosition = i;
       fnTicks(nPosition);
     }
   }
 
-  drawTicks({
-    nTicks = 1,
-    tickSize = 5,
-    stroke = { width: 2, color: 'black' },
-  }) {
+  drawTicks({ nTicks = 1, tickSize = 5, stroke = { width: 2, color: 'black' } }) {
     this.nTicks = nTicks;
     this.arrTicksLines = [];
     const scale = [
@@ -172,21 +156,11 @@ class ScaleGrid {
       const linePosY = this.fnScaleY(nPosition) as Pixel;
 
       const lineX = this.draw
-        .line(
-          linePosX,
-          this.center[1] + tickSize,
-          linePosX,
-          this.center[1] - tickSize
-        )
+        .line(linePosX, this.center[1] + tickSize, linePosX, this.center[1] - tickSize)
         .stroke(stroke);
 
       const lineY = this.draw
-        .line(
-          this.center[0] + tickSize,
-          linePosY,
-          this.center[0] - tickSize,
-          linePosY
-        )
+        .line(this.center[0] + tickSize, linePosY, this.center[0] - tickSize, linePosY)
         .stroke(stroke);
 
       this.arrTicksLines.push(lineX, lineY);
@@ -195,7 +169,7 @@ class ScaleGrid {
     return this;
   }
 
-  drawTicksText() {
+  drawTicksText(color = '#000') {
     this.arrTicksText = [];
     const scale = [
       Math.min(this.scaleX[0], this.scaleY[0]),
@@ -206,11 +180,17 @@ class ScaleGrid {
       const linePosX = this.fnScaleX(nPosition) as Pixel;
       const linePosY = this.fnScaleY(nPosition) as Pixel;
       this.arrTicksText.push(
-        this.draw.text(String(nPosition)).move(linePosX, this.center[1] + 10)
+        this.draw
+          .text(String(nPosition))
+          .move(linePosX, this.center[1] + 10)
+          .attr({ stroke: color })
       );
       if (nPosition !== 0) {
         this.arrTicksText.push(
-          this.draw.text(String(nPosition)).move(this.center[0] + 10, linePosY)
+          this.draw
+            .text(String(nPosition))
+            .move(this.center[0] + 10, linePosY)
+            .attr({ stroke: color })
         );
       }
     });
@@ -218,19 +198,10 @@ class ScaleGrid {
   }
 
   clearTicks() {
-    [...this.arrTicksText, ...this.arrTicksLines].forEach((objSvg) =>
-      objSvg.remove()
-    );
+    [...this.arrTicksText, ...this.arrTicksLines].forEach((objSvg) => objSvg.remove());
   }
 }
 
 export default ScaleGrid;
-export {
-  zip,
-  scaleCreator,
-  range,
-  diffScaleCreator,
-  xyScaleCreator,
-  inverseScale,
-};
+export { zip, scaleCreator, range, diffScaleCreator, xyScaleCreator, inverseScale };
 export type { CustomScale };
