@@ -60,7 +60,6 @@ class TrackableSVG {
       x + this.origin.ox,
       y + this.origin.oy,
     ]) as ArrayXY[];
-    debugger;
     this.sTrackPath.plot(arrSmoothedXY);
   }
 
