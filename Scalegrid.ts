@@ -1,5 +1,4 @@
-import { Line, Polygon, Svg, G, Polyline, Text } from '@svgdotjs/svg.js';
-import { pointer, listen, styler, ColdSubscription, calc, action } from 'popmotion';
+import { Line, Svg, Polyline, Text } from '@svgdotjs/svg.js';
 
 interface CustomScale {
   arrDomain: number[];
@@ -58,6 +57,8 @@ function range(initial: number, final: number, N: number) {
 
 class ScaleGrid {
   origin: { x: number; y: number };
+  xAxis: Line;
+  yAxis: Line;
   size: number[];
   center: number[];
   fnScaleX: (x: number) => number;
@@ -86,11 +87,9 @@ class ScaleGrid {
     const size = [draw.cx() * 2 * (1 - xPadding), draw.cy() * 2 * (1 - yPadding)];
     const center = [Math.floor(size[0] * origin.x), Math.floor(size[1] * origin.y)];
 
-    const xAxis = draw.line(0, center[1], size[0], center[1]).stroke(stroke);
-    const yAxis = draw.line(center[0], 0, center[0], size[1]).stroke(stroke);
+    this.xAxis = draw.line(0, center[1], size[0], center[1]).stroke(stroke);
+    this.yAxis = draw.line(center[0], 0, center[0], size[1]).stroke(stroke);
 
-    const xPositiveSize = size[0] - center[0];
-    const yPositiveSize = size[1] - center[1];
     //const tickSize = xPos
     const fnScaleX = scaleCreator(scaleX, [0, size[0]]);
     const fnScaleY = scaleCreator(scaleY, [size[1], 0]);
