@@ -1,17 +1,15 @@
-import { Line, Polygon, Svg, G, Polyline, Text } from '@svgdotjs/svg.js';
-import {
-  pointer,
-  listen,
-  styler,
-  ColdSubscription,
-  calc,
-  action,
-} from 'popmotion';
+import { Line, Svg, Polyline, Text } from '@svgdotjs/svg.js';
+import { ifElse, range, zip } from 'ramda';
 
 interface CustomScale {
   arrDomain: number[];
   arrImage: number[];
   (arg: number): number;
+}
+
+export interface PlotObj {
+  name: string;
+  polyline: Polyline;
 }
 
 function scaleCreator(arrDomain: number[], arrImage: number[]) {
@@ -51,25 +49,14 @@ function xyScaleCreator(fnBaseScale: CustomScale) {
 
 type Pixel = number;
 
-function zip<T>(arr1: Array<T>, arr2: Array<T>) {
-  if (arr1.length !== arr2.length) {
-    throw { msg: 'Sizes mismatch' };
-  }
-  return arr1.map((element, i) => [element, arr2[i]]);
-}
-
-function range(initial: number, final: number, N: number) {
-  const fnScale = scaleCreator([0, N - 1], [initial, final]);
-  return [...Array(N).keys()].map((el) => fnScale(el));
-}
-
 class ScaleGrid {
-  origin: { x: number; y: number };
+  xAxis: Line;
+  yAxis: Line;
   size: number[];
   center: number[];
   fnScaleX: (x: number) => number;
   fnScaleY: (x: number) => number;
-  polyline: Polyline;
+  mapPlots: Map<string, PlotObj>;
   xData: number[];
   yData: number[];
   scaleX: number[];
@@ -83,32 +70,24 @@ class ScaleGrid {
       scaleX = [-5, 5],
       scaleY = [-5, 5],
       stroke = { width: 2, color: 'black' },
+      xPadding = 30,
+      yPadding = 30,
     }
   ) {
-    const scaleRatioX = scaleX[1] / (scaleX[1] - scaleX[0]);
-    const scaleRatioY = scaleY[1] / (scaleY[1] - scaleY[0]);
-    const origin = { x: 1 - scaleRatioX, y: scaleRatioY };
     const size = [draw.cx() * 2, draw.cy() * 2];
-    const center = [
-      Math.floor(size[0] * origin.x),
-      Math.floor(size[1] * origin.y),
-    ];
 
-    const xAxis = draw.line(0, center[1], size[0], center[1]).stroke(stroke);
-    const yAxis = draw.line(center[0], 0, center[0], size[1]).stroke(stroke);
+    const fnScaleX = scaleCreator(scaleX, [xPadding, size[0] - xPadding]);
+    const fnScaleY = scaleCreator(scaleY, [size[1] - yPadding, yPadding]);
+    const center = [fnScaleX(0), fnScaleY(0)];
 
-    const xPositiveSize = size[0] - center[0];
-    const yPositiveSize = size[1] - center[1];
-    //const tickSize = xPos
-    const fnScaleX = scaleCreator(scaleX, [0, size[0]]);
-    const fnScaleY = scaleCreator(scaleY, [size[1], 0]);
+    this.xAxis = draw.line(0, center[1], size[0], center[1]).stroke(stroke);
+    this.yAxis = draw.line(center[0], 0, center[0], size[1]).stroke(stroke);
 
     this.center = center;
-    this.origin = origin;
     this.size = size;
     this.fnScaleX = fnScaleX;
     this.fnScaleY = fnScaleY;
-    this.polyline = draw.polyline().fill('#00000000');
+    this.mapPlots = new Map();
     this.xData = [];
     this.yData = [];
     this.scaleX = scaleX;
@@ -122,14 +101,34 @@ class ScaleGrid {
   plot(
     arrX: number[],
     arrY: number[],
-    stroke = {
-      width: 2,
-      color: '#7777ff',
-    }
+    {
+      stroke = {
+        width: 2,
+        color: '#7777ff',
+      },
+      name = 'plot1',
+      fill = '#00000000',
+    } = {}
   ) {
+    const plotObj = this.mapPlots.get(name);
+    const polyline = ifElse(
+      (x) => x,
+      () => plotObj?.polyline,
+      () => this.draw.polyline().fill(fill)
+    )(plotObj) as Polyline;
     const args = this._mapData(arrX, arrY);
-    this.polyline.plot(args as any).stroke(stroke);
+    polyline.plot(args as any).stroke(stroke);
+    this.mapPlots.set(name, { polyline, name });
     return this;
+  }
+
+  deletePlot(name: string) {
+    const objPlot = this.mapPlots.get(name);
+    if (!objPlot) {
+      return;
+    }
+    objPlot.polyline.remove();
+    this.mapPlots.delete(name);
   }
 
   _mapData(arrX: number[], arrY: number[]) {
@@ -139,16 +138,17 @@ class ScaleGrid {
     return args;
   }
 
-  animatePlot(arrX: number[], arrY: number[]) {
+  animatePlot(arrX: number[], arrY: number[], { name = 'plot1' } = {}) {
     const args2 = this._mapData(arrX, arrY);
-    this.polyline.animate().plot(args2);
+    const objPlot = this.mapPlots.get(name);
+    if (!objPlot) {
+      return this;
+    }
+    objPlot.polyline.animate().plot(args2);
+    return this;
   }
 
-  ticksLoop(
-    scale: number[],
-    nTicks: number,
-    fnTicks: (nPosition: Pixel) => void
-  ) {
+  ticksLoop(scale: number[], nTicks: number, fnTicks: (nPosition: Pixel) => void) {
     for (let i = scale[0]; i <= scale[1]; i += 1 / nTicks) {
       const nPosition = i;
       fnTicks(nPosition);
@@ -168,21 +168,11 @@ class ScaleGrid {
       const linePosY = this.fnScaleY(nPosition) as Pixel;
 
       const lineX = this.draw
-        .line(
-          linePosX,
-          this.center[1] + tickSize,
-          linePosX,
-          this.center[1] - tickSize
-        )
+        .line(linePosX, this.center[1] + tickSize, linePosX, this.center[1] - tickSize)
         .stroke(stroke);
 
       const lineY = this.draw
-        .line(
-          this.center[0] + tickSize,
-          linePosY,
-          this.center[0] - tickSize,
-          linePosY
-        )
+        .line(this.center[0] + tickSize, linePosY, this.center[0] - tickSize, linePosY)
         .stroke(stroke);
 
       this.arrTicksLines.push(lineX, lineY);
@@ -199,24 +189,25 @@ class ScaleGrid {
     ];
 
     this.ticksLoop(scale, this.nTicks, (nPosition) => {
-      const linePosX = this.fnScaleX(nPosition) as Pixel;
-      const linePosY = this.fnScaleY(nPosition) as Pixel;
+      const linePosX = this.fnScaleX(nPosition);
+      const linePosY = this.fnScaleY(nPosition);
+      const [xPos, yPos] =
+        nPosition === 0 ? [linePosX + 15, this.center[1] + 15] : [linePosX, this.center[1] + 15];
       this.arrTicksText.push(
-        this.draw.text(String(nPosition)).move(linePosX, this.center[1] + 10)
+        this.draw.text(String(nPosition)).center(xPos, yPos).attr({ stroke: color })
       );
       if (nPosition !== 0) {
-        this.arrTicksText.push(
-          this.draw.text(String(nPosition)).move(this.center[0] + 10, linePosY)
-        );
+        this.draw
+          .text(String(nPosition))
+          .center(this.center[0] + 15, linePosY)
+          .attr({ stroke: color });
       }
     });
     return this;
   }
 
   clearTicks() {
-    [...this.arrTicksText, ...this.arrTicksLines].forEach((objSvg) =>
-      objSvg.remove()
-    );
+    [...this.arrTicksText, ...this.arrTicksLines].forEach((objSvg) => objSvg.remove());
   }
 
   addLabel(textX ='x', textY = 'y') {
@@ -234,12 +225,5 @@ class ScaleGrid {
 }
 
 export default ScaleGrid;
-export {
-  zip,
-  scaleCreator,
-  range,
-  diffScaleCreator,
-  xyScaleCreator,
-  inverseScale,
-};
+export { zip, scaleCreator, range, diffScaleCreator, xyScaleCreator, inverseScale };
 export type { CustomScale };
