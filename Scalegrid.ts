@@ -155,11 +155,7 @@ class ScaleGrid {
     }
   }
 
-  drawTicks({
-    nTicks = 1,
-    tickSize = 5,
-    stroke = { width: 2, color: 'black' },
-  }) {
+  drawTicks({ nTicks = 1, tickSize = 5, stroke = { width: 2, color: 'white' } }) {
     this.nTicks = nTicks;
     this.arrTicksLines = [];
     const scale = [
@@ -195,7 +191,7 @@ class ScaleGrid {
     return this;
   }
 
-  drawTicksText() {
+  drawTicksText(color = '#fff') {
     this.arrTicksText = [];
     const scale = [
       Math.min(this.scaleX[0], this.scaleY[0]),
@@ -221,6 +217,19 @@ class ScaleGrid {
     [...this.arrTicksText, ...this.arrTicksLines].forEach((objSvg) =>
       objSvg.remove()
     );
+  }
+
+  addLabel(textX ='x', textY = 'y') {
+    const xPos = this.fnScaleX(this.scaleX[1] / 2);
+    const yPos = this.fnScaleY(0);
+    this.draw
+      .text(textX)
+      .move(xPos + 290, yPos)
+      .attr({ stroke: '#fff' });
+    this.draw
+      .text(textY)
+      .move(xPos - 290, yPos - 200)
+      .attr({ stroke: '#fff' });
   }
 }
 
