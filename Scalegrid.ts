@@ -69,15 +69,17 @@ class ScaleGrid {
     {
       scaleX = [-5, 5],
       scaleY = [-5, 5],
-      stroke = { width: 2, color: 'black' },
-      xPadding = 30,
-      yPadding = 30,
+      stroke = { width: 2, color: 'white' },
+      xPaddingLeft = 30,
+      xPaddingRight = 30,
+      yPaddingBottom = 30,
+      yPaddingTop = 30,
     }
   ) {
     const size = [draw.cx() * 2, draw.cy() * 2];
 
-    const fnScaleX = scaleCreator(scaleX, [xPadding, size[0] - xPadding]);
-    const fnScaleY = scaleCreator(scaleY, [size[1] - yPadding, yPadding]);
+    const fnScaleX = scaleCreator(scaleX, [xPaddingLeft, size[0] - xPaddingRight]);
+    const fnScaleY = scaleCreator(scaleY, [size[1] - yPaddingBottom, yPaddingTop]);
     const center = [fnScaleX(0), fnScaleY(0)];
 
     this.xAxis = draw.line(0, center[1], size[0], center[1]).stroke(stroke);
@@ -213,14 +215,19 @@ class ScaleGrid {
   addLabel(textX ='x', textY = 'y') {
     const xPos = this.fnScaleX(this.scaleX[1] / 2);
     const yPos = this.fnScaleY(0);
+
+    const xPos2 = this.fnScaleX(0);
+    const yPos2 = this.fnScaleY(this.scaleY[1]/2);
     this.draw
       .text(textX)
-      .move(xPos + 290, yPos)
+      // .move(xPos + 290, yPos)
+      .center(xPos, yPos + 40)
       .attr({ stroke: '#fff' });
     this.draw
       .text(textY)
-      .move(xPos - 290, yPos - 200)
-      .attr({ stroke: '#fff' });
+      .center(xPos2 - 30, yPos2)
+      .attr({ stroke: '#fff' })
+      .transform({rotate: -90});
   }
 }
 
